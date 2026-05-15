@@ -6,3 +6,4 @@ functions/lib
 .firebase
 firebase-debug.log
 *.tsbuildinfo
+.playwright-mcp/

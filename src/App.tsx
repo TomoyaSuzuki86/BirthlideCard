@@ -133,11 +133,22 @@ function PublicUploadPage() {
     setBusy(`${mediaFiles.length}件の写真・動画を追加しています。`);
     setError('');
     try {
+      let importedCount = 0;
+      let skippedCount = 0;
       for (const file of mediaFiles) {
-        await uploadManualFile(selectedChildId, file, caption);
+        const result = await uploadManualFile(selectedChildId, file, caption);
+        if (result.imported) {
+          importedCount += 1;
+        } else {
+          skippedCount += 1;
+        }
       }
       setCaption('');
-      setBusy(`${mediaFiles.length}件追加しました。公開アルバムに反映されます。`);
+      setBusy(
+        skippedCount > 0
+          ? `${importedCount}件追加しました。${skippedCount}件はすでに追加済みでした。公開アルバムに反映されます。`
+          : `${importedCount}件追加しました。公開アルバムに反映されます。`,
+      );
     } catch (uploadError) {
       setError(uploadError instanceof Error ? uploadError.message : '写真の追加に失敗しました。');
       setBusy('');

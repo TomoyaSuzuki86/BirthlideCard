@@ -182,7 +182,6 @@ export async function uploadManualFile(childId: ChildId, file: File, caption = '
     caption,
     takenAt: new Date(file.lastModified || Date.now()).toISOString(),
     sourceType: 'manual-upload',
-    sourceId: `${file.name}-${file.size}-${file.lastModified}`,
   });
 }
 
