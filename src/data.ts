@@ -1,5 +1,6 @@
 import {
   collection,
+  deleteDoc,
   doc,
   getDocs,
   limit,
@@ -11,7 +12,7 @@ import {
   updateDoc,
   where,
 } from 'firebase/firestore';
-import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
+import { deleteObject, getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { db, storage } from './firebase';
 import type { AlbumImage, ChildId, ImportResult, SourceType } from './types';
 
@@ -153,11 +154,11 @@ export async function uploadImageBlob({
   return { imported: true, imageId };
 }
 
-export async function uploadManualFile(childId: ChildId, file: File) {
+export async function uploadManualFile(childId: ChildId, file: File, caption = '') {
   return uploadImageBlob({
     childId,
     blob: file,
-    caption: '',
+    caption,
     takenAt: new Date(file.lastModified || Date.now()).toISOString(),
     sourceType: 'manual-upload',
     sourceId: `${file.name}-${file.size}-${file.lastModified}`,
@@ -194,4 +195,17 @@ export async function updateImage(image: AlbumImage, patch: Partial<AlbumImage>)
     ...patch,
     updatedAt: serverTimestamp(),
   });
+}
+
+export async function deleteImage(image: AlbumImage) {
+  if (image.storagePath) {
+    await deleteObject(ref(storage, image.storagePath)).catch((error: unknown) => {
+      const code = typeof error === 'object' && error && 'code' in error ? String(error.code) : '';
+      if (code !== 'storage/object-not-found') {
+        throw error;
+      }
+    });
+  }
+
+  await deleteDoc(doc(db, 'albums', image.childId, 'images', image.id));
 }

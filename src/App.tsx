@@ -9,10 +9,12 @@ import {
   ImagePlus,
   Lock,
   Sparkles,
+  Trash2,
 } from 'lucide-react';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import {
   childProfiles,
+  deleteImage,
   getChildProfile,
   importPickedPhotoBlobs,
   updateImage,
@@ -34,6 +36,10 @@ export function App() {
 
   if (path.startsWith('/admin')) {
     return <AdminPage />;
+  }
+
+  if (path.startsWith('/add')) {
+    return <PublicUploadPage />;
   }
 
   if (path.startsWith('/ar')) {
@@ -93,10 +99,166 @@ function PublicAlbumPage() {
 
       <TwinSlideshow images={images} />
 
+      <a className="manage-link" href="/add">
+        <ImagePlus size={22} />
+        写真を追加・整理する
+      </a>
+
       <a className="ar-link" href="/ar">
         <Sparkles size={20} />
         AR表示を試す
       </a>
+    </main>
+  );
+}
+
+function PublicUploadPage() {
+  const [selectedChildId, setSelectedChildId] = useState<ChildId>('kanata');
+  const [images, setImages] = useState<AlbumImage[]>([]);
+  const [caption, setCaption] = useState('');
+  const [busy, setBusy] = useState('');
+  const [error, setError] = useState('');
+  const [dragActive, setDragActive] = useState(false);
+  const child = getChildProfile(selectedChildId);
+
+  useEffect(() => {
+    if (!firebaseReady) return undefined;
+    return watchAllImages(selectedChildId, setImages, setError);
+  }, [selectedChildId]);
+
+  const handleFiles = async (files?: FileList | File[]) => {
+    const imageFiles = Array.from(files ?? []).filter((file) => file.type.startsWith('image/'));
+    if (!imageFiles.length) return;
+    setBusy(`${imageFiles.length}枚の写真を追加しています。`);
+    setError('');
+    try {
+      for (const file of imageFiles) {
+        await uploadManualFile(selectedChildId, file, caption);
+      }
+      setCaption('');
+      setBusy(`${imageFiles.length}枚追加しました。公開アルバムに反映されます。`);
+    } catch (uploadError) {
+      setError(uploadError instanceof Error ? uploadError.message : '写真の追加に失敗しました。');
+      setBusy('');
+    }
+  };
+
+  const handleGooglePhotosImport = async () => {
+    setBusy('Googleフォトで選んだ写真を取り込んでいます。');
+    setError('');
+    try {
+      const pickedPhotos = await startGooglePhotosImport();
+      const result = await importPickedPhotoBlobs(selectedChildId, pickedPhotos);
+      setBusy(`${result.importedCount}枚追加、${result.skippedCount}枚スキップしました。`);
+    } catch (importError) {
+      setError(importError instanceof Error ? importError.message : 'Googleフォト取り込みに失敗しました。');
+      setBusy('');
+    }
+  };
+
+  const handleDelete = async (image: AlbumImage) => {
+    const ok = window.confirm('この写真を削除しますか？');
+    if (!ok) return;
+    setBusy('写真を削除しています。');
+    setError('');
+    try {
+      await deleteImage(image);
+      setBusy('削除しました。');
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : '写真の削除に失敗しました。');
+      setBusy('');
+    }
+  };
+
+  return (
+    <main className="admin-shell">
+      <header className="admin-header">
+        <div>
+          <p className="eyebrow">Family Upload</p>
+          <h1>写真を追加・整理</h1>
+        </div>
+        <a className="secondary-button" href="/">
+          アルバムへ戻る
+        </a>
+      </header>
+
+      <Notice>ログインなしで写真を追加・削除できます。</Notice>
+      {error && <Notice tone="error">{error}</Notice>}
+      {busy && <Notice>{busy}</Notice>}
+
+      <section className="admin-panel">
+        <h2>だれの写真ですか？</h2>
+        <div className="segmented">
+          {childProfiles.map((profile) => (
+            <button
+              key={profile.id}
+              type="button"
+              className={profile.id === selectedChildId ? 'active' : ''}
+              onClick={() => setSelectedChildId(profile.id)}
+            >
+              {profile.name}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section
+        className={dragActive ? 'admin-panel public-uploader drop-active' : 'admin-panel public-uploader'}
+        onDragOver={(event) => {
+          event.preventDefault();
+          setDragActive(true);
+        }}
+        onDragLeave={() => setDragActive(false)}
+        onDrop={(event) => {
+          event.preventDefault();
+          setDragActive(false);
+          handleFiles(event.dataTransfer.files);
+        }}
+      >
+        <h2>{child.name}の写真を追加</h2>
+        <label>
+          キャプション
+          <input value={caption} onChange={(event) => setCaption(event.target.value)} placeholder="例: お昼寝中の一枚" />
+        </label>
+        <div className="drop-zone">
+          <ImagePlus size={40} />
+          <strong>ここに写真をドラッグ&ドロップ</strong>
+          <span>スマホでは下のボタンから選べます</span>
+        </div>
+        <div className="action-grid">
+          <label className="upload-button inline">
+            <Camera size={24} />
+            写真を選ぶ
+            <input type="file" accept="image/*" multiple onChange={(event) => handleFiles(event.target.files ?? undefined)} />
+          </label>
+          <button className="primary-button" type="button" onClick={handleGooglePhotosImport}>
+            <Cloud size={22} />
+            Googleフォトから選ぶ
+          </button>
+        </div>
+      </section>
+
+      <section className="admin-panel">
+        <div className="section-heading compact">
+          <div>
+            <p>{child.romanName}</p>
+            <h2>追加済み写真</h2>
+          </div>
+          <span>{images.length}枚</span>
+        </div>
+        <div className="public-photo-grid">
+          {images.map((image) => (
+            <article className="public-photo-card" key={image.id}>
+              {image.downloadUrl ? <img src={image.downloadUrl} alt={image.caption || `${child.name}の写真`} /> : null}
+              <p>{image.caption || 'キャプションなし'}</p>
+              <button className="danger-button" type="button" onClick={() => handleDelete(image)}>
+                <Trash2 size={18} />
+                削除
+              </button>
+            </article>
+          ))}
+        </div>
+      </section>
     </main>
   );
 }

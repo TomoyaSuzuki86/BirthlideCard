@@ -48,6 +48,12 @@ npm run build
 
 共有アルバムURLのスクレイピングは使いません。管理画面の「Googleフォトから取り込む」からGoogle Photos Picker APIを開き、ユーザーが明示的に選んだ写真だけを取得します。`baseUrl`は保存せず、取得後すぐFirebase Storageへコピーします。重複は`sourceType + sourceId`でスキップします。
 
+## かんたん写真追加
+
+`/add` からログインなしで写真を追加・削除できます。親戚がスマホで開き、奏汰/日向を選んで写真を選ぶだけでFirebase Storageへ保存され、Firestoreの公開メタデータにも反映されます。
+
+この運用ではFirestore/Storage rulesも公開書き込みを許可しています。URLを知っている人なら誰でも追加・削除できるため、必要に応じて後から「合言葉」や「削除だけ保護」に戻してください。
+
 ## Google Drive同期
 
 `functions/src/syncDriveAlbums.ts`にCloud Functions v2の定期バッチを用意しています。
