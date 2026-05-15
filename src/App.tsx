@@ -54,6 +54,7 @@ function PublicAlbumPage() {
       return;
     }
 
+    const loadingFallback = window.setTimeout(() => setLoading(false), 3000);
     const unsubscribers = childProfiles.map((child) =>
       watchPublishedImages(
         child.id,
@@ -65,7 +66,10 @@ function PublicAlbumPage() {
       ),
     );
 
-    return () => unsubscribers.forEach((unsubscribe) => unsubscribe());
+    return () => {
+      window.clearTimeout(loadingFallback);
+      unsubscribers.forEach((unsubscribe) => unsubscribe());
+    };
   }, []);
 
   return (
@@ -366,6 +370,7 @@ function ArPage() {
       return undefined;
     }
 
+    const loadingFallback = window.setTimeout(() => setLoading(false), 3000);
     const unsubscribers = childProfiles.map((child) =>
       watchPublishedImages(
         child.id,
@@ -377,7 +382,10 @@ function ArPage() {
       ),
     );
 
-    return () => unsubscribers.forEach((unsubscribe) => unsubscribe());
+    return () => {
+      window.clearTimeout(loadingFallback);
+      unsubscribers.forEach((unsubscribe) => unsubscribe());
+    };
   }, []);
 
   useEffect(() => {
