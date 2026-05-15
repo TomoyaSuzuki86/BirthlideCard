@@ -30,6 +30,7 @@ import type { AlbumImage, ChildId } from './types';
 type ImageMap = Record<ChildId, AlbumImage[]>;
 
 const emptyImages: ImageMap = { kanata: [], hinata: [] };
+const mindTargetUrl = '/targets/meimeisho.mind?v=20260515';
 
 export function App() {
   const path = window.location.pathname;
@@ -558,10 +559,10 @@ function ArPage() {
       return;
     }
 
-    fetch('/targets/meimeisho.mind', { method: 'GET' })
-      .then((response) => {
-        const contentType = response.headers.get('content-type') ?? '';
-        const hasTarget = response.ok && !contentType.includes('text/html');
+    fetch(mindTargetUrl, { method: 'GET', cache: 'no-store' })
+      .then(async (response) => {
+        const targetBytes = await response.arrayBuffer();
+        const hasTarget = response.ok && targetBytes.byteLength > 1024;
         setTargetReady(hasTarget);
         if (!hasTarget) {
           setArMessage('AR用ターゲットファイルがまだありません。命名書画像から .mind ファイルを作成すると起動できます。');
@@ -618,7 +619,7 @@ function ArPage() {
 function MindArScene({ imageUrl }: { imageUrl: string }) {
   const sceneHtml = `
     <a-scene
-      mindar-image="imageTargetSrc: /targets/meimeisho.mind; autoStart: true; uiScanning: yes; uiLoading: yes; uiError: yes;"
+      mindar-image="imageTargetSrc: ${mindTargetUrl}; autoStart: true; uiScanning: yes; uiLoading: yes; uiError: yes;"
       color-space="sRGB"
       renderer="colorManagement: true, physicallyCorrectLights"
       vr-mode-ui="enabled: false"
