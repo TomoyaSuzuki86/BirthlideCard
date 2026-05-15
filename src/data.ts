@@ -5,7 +5,6 @@ import {
   getDocs,
   limit,
   onSnapshot,
-  orderBy,
   query,
   serverTimestamp,
   setDoc,
@@ -59,14 +58,22 @@ function toAlbumImage(childId: ChildId, id: string, data: Record<string, unknown
   };
 }
 
+function sortImages(images: AlbumImage[]) {
+  return [...images].sort((a, b) => {
+    const aTime = a.takenAt ? new Date(a.takenAt).getTime() : 0;
+    const bTime = b.takenAt ? new Date(b.takenAt).getTime() : 0;
+    return bTime - aTime;
+  });
+}
+
 export function watchPublishedImages(
   childId: ChildId,
   onChange: (images: AlbumImage[]) => void,
   onError: (message: string) => void,
 ) {
   return onSnapshot(
-    query(imagesRef(childId), where('isPublished', '==', true), orderBy('takenAt', 'desc')),
-    (snapshot) => onChange(snapshot.docs.map((imageDoc) => toAlbumImage(childId, imageDoc.id, imageDoc.data()))),
+    query(imagesRef(childId), where('isPublished', '==', true)),
+    (snapshot) => onChange(sortImages(snapshot.docs.map((imageDoc) => toAlbumImage(childId, imageDoc.id, imageDoc.data())))),
     (error) => onError(error.message),
   );
 }
@@ -77,8 +84,8 @@ export function watchAllImages(
   onError: (message: string) => void,
 ) {
   return onSnapshot(
-    query(imagesRef(childId), orderBy('takenAt', 'desc')),
-    (snapshot) => onChange(snapshot.docs.map((imageDoc) => toAlbumImage(childId, imageDoc.id, imageDoc.data()))),
+    imagesRef(childId),
+    (snapshot) => onChange(sortImages(snapshot.docs.map((imageDoc) => toAlbumImage(childId, imageDoc.id, imageDoc.data())))),
     (error) => onError(error.message),
   );
 }
