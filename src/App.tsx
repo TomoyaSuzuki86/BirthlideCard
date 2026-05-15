@@ -119,7 +119,6 @@ function PublicUploadPage() {
   const [caption, setCaption] = useState('');
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
-  const [dragActive, setDragActive] = useState(false);
   const child = getChildProfile(selectedChildId);
 
   useEffect(() => {
@@ -155,19 +154,6 @@ function PublicUploadPage() {
     }
   };
 
-  const handleGooglePhotosImport = async () => {
-    setBusy('Googleフォトで選んだ写真を取り込んでいます。');
-    setError('');
-    try {
-      const pickedPhotos = await startGooglePhotosImport();
-      const result = await importPickedPhotoBlobs(selectedChildId, pickedPhotos);
-      setBusy(`${result.importedCount}枚追加、${result.skippedCount}枚スキップしました。`);
-    } catch (importError) {
-      setError(importError instanceof Error ? importError.message : 'Googleフォト取り込みに失敗しました。');
-      setBusy('');
-    }
-  };
-
   const handleDelete = async (image: AlbumImage) => {
     const ok = window.confirm('この写真を削除しますか？');
     if (!ok) return;
@@ -195,9 +181,6 @@ function PublicUploadPage() {
       </header>
 
       <Notice>ログインなしで写真を追加・削除できます。</Notice>
-      {!googlePhotosPickerConfigured && (
-        <Notice>Googleフォト連携は設定待ちです。写真・動画は「写真を選ぶ」から追加できます。</Notice>
-      )}
       {error && <Notice tone="error">{error}</Notice>}
       {busy && <Notice>{busy}</Notice>}
 
@@ -217,40 +200,17 @@ function PublicUploadPage() {
         </div>
       </section>
 
-      <section
-        className={dragActive ? 'admin-panel public-uploader drop-active' : 'admin-panel public-uploader'}
-        onDragOver={(event) => {
-          event.preventDefault();
-          setDragActive(true);
-        }}
-        onDragLeave={() => setDragActive(false)}
-        onDrop={(event) => {
-          event.preventDefault();
-          setDragActive(false);
-          handleFiles(event.dataTransfer.files);
-        }}
-      >
+      <section className="admin-panel public-uploader">
         <h2>{child.name}の写真を追加</h2>
         <label>
           キャプション
           <input value={caption} onChange={(event) => setCaption(event.target.value)} placeholder="例: お昼寝中の一枚" />
         </label>
-        <div className="drop-zone">
-          <ImagePlus size={40} />
-          <strong>ここに写真をドラッグ&ドロップ</strong>
-          <span>スマホでは下のボタンから選べます</span>
-        </div>
-        <div className="action-grid">
-          <label className="upload-button inline">
-            <Camera size={24} />
-            写真を選ぶ
-            <input type="file" accept="image/*,video/*" multiple onChange={(event) => handleFiles(event.target.files ?? undefined)} />
-          </label>
-          <button className="primary-button" type="button" onClick={handleGooglePhotosImport} disabled={!googlePhotosPickerConfigured}>
-            <Cloud size={22} />
-            Googleフォトから選ぶ
-          </button>
-        </div>
+        <label className="upload-button inline public-pick-button">
+          <Camera size={24} />
+          写真を選ぶ
+          <input type="file" accept="image/*,video/*" multiple onChange={(event) => handleFiles(event.target.files ?? undefined)} />
+        </label>
       </section>
 
       <section className="admin-panel">

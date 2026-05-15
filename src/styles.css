@@ -452,6 +452,14 @@ textarea {
   margin: 0;
 }
 
+.public-pick-button {
+  min-height: 62px;
+  border-style: solid;
+  background: #4d3a2a;
+  color: #fffaf1;
+  font-size: 1.05rem;
+}
+
 .upload-button input {
   position: absolute;
   width: 1px;
@@ -468,33 +476,6 @@ textarea {
 .public-uploader {
   display: grid;
   gap: 14px;
-}
-
-.public-uploader.drop-active {
-  border-color: #4d3a2a;
-  background: #fff6e7;
-}
-
-.drop-zone {
-  display: grid;
-  place-items: center;
-  gap: 8px;
-  min-height: 170px;
-  padding: 18px;
-  border: 2px dashed #c7a982;
-  border-radius: 8px;
-  background: #fffaf1;
-  color: #5d4228;
-  text-align: center;
-}
-
-.drop-zone strong {
-  font-size: 1.05rem;
-}
-
-.drop-zone span {
-  color: #806348;
-  font-weight: 800;
 }
 
 .public-photo-grid {
