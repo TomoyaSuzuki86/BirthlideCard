@@ -1,12 +1,14 @@
 export type ChildId = 'kanata' | 'hinata';
 
 export type SourceType = 'manual-upload' | 'google-photos-picker' | 'google-drive-sync';
+export type MediaType = 'image' | 'video';
 
 export type AlbumImage = {
   id: string;
   childId: ChildId;
   storagePath: string;
   downloadUrl?: string;
+  mediaType?: MediaType;
   caption?: string;
   takenAt?: string;
   sourceType: SourceType;

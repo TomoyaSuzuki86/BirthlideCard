@@ -163,13 +163,14 @@ async function listPickedMedia(sessionId: string, accessToken: string) {
   return items;
 }
 
-async function downloadPickedImage(item: PickedMediaItem, accessToken: string) {
+async function downloadPickedMedia(item: PickedMediaItem, accessToken: string) {
   const baseUrl = item.mediaFile?.baseUrl;
   if (!baseUrl) {
     throw new Error('Googleフォトの画像URLを取得できませんでした。');
   }
 
-  const response = await fetch(`${baseUrl}=d`, {
+  const downloadSuffix = item.mediaFile?.mimeType?.startsWith('video/') ? '=dv' : '=d';
+  const response = await fetch(`${baseUrl}${downloadSuffix}`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
 
@@ -199,6 +200,9 @@ export async function startGooglePhotosImport() {
     // The session is short-lived; import can continue even if cleanup fails.
   }
 
-  const images = mediaItems.filter((item) => item.mediaFile?.mimeType?.startsWith('image/'));
-  return Promise.all(images.map((item) => downloadPickedImage(item, accessToken)));
+  const supportedMedia = mediaItems.filter((item) => {
+    const mimeType = item.mediaFile?.mimeType ?? '';
+    return mimeType.startsWith('image/') || mimeType.startsWith('video/');
+  });
+  return Promise.all(supportedMedia.map((item) => downloadPickedMedia(item, accessToken)));
 }

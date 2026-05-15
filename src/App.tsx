@@ -11,7 +11,7 @@ import {
   Sparkles,
   Trash2,
 } from 'lucide-react';
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   childProfiles,
   deleteImage,
@@ -30,7 +30,7 @@ import type { AlbumImage, ChildId } from './types';
 type ImageMap = Record<ChildId, AlbumImage[]>;
 
 const emptyImages: ImageMap = { kanata: [], hinata: [] };
-const mindTargetUrl = '/targets/meimeisho.mind?v=20260515';
+const mindTargetUrl = '/targets/meimeisho.mind?v=20260515-ar';
 
 export function App() {
   const path = window.location.pathname;
@@ -128,16 +128,16 @@ function PublicUploadPage() {
   }, [selectedChildId]);
 
   const handleFiles = async (files?: FileList | File[]) => {
-    const imageFiles = Array.from(files ?? []).filter((file) => file.type.startsWith('image/'));
-    if (!imageFiles.length) return;
-    setBusy(`${imageFiles.length}枚の写真を追加しています。`);
+    const mediaFiles = Array.from(files ?? []).filter((file) => file.type.startsWith('image/') || file.type.startsWith('video/'));
+    if (!mediaFiles.length) return;
+    setBusy(`${mediaFiles.length}件の写真・動画を追加しています。`);
     setError('');
     try {
-      for (const file of imageFiles) {
+      for (const file of mediaFiles) {
         await uploadManualFile(selectedChildId, file, caption);
       }
       setCaption('');
-      setBusy(`${imageFiles.length}枚追加しました。公開アルバムに反映されます。`);
+      setBusy(`${mediaFiles.length}件追加しました。公開アルバムに反映されます。`);
     } catch (uploadError) {
       setError(uploadError instanceof Error ? uploadError.message : '写真の追加に失敗しました。');
       setBusy('');
@@ -230,7 +230,7 @@ function PublicUploadPage() {
           <label className="upload-button inline">
             <Camera size={24} />
             写真を選ぶ
-            <input type="file" accept="image/*" multiple onChange={(event) => handleFiles(event.target.files ?? undefined)} />
+            <input type="file" accept="image/*,video/*" multiple onChange={(event) => handleFiles(event.target.files ?? undefined)} />
           </label>
           <button className="primary-button" type="button" onClick={handleGooglePhotosImport}>
             <Cloud size={22} />
@@ -250,7 +250,7 @@ function PublicUploadPage() {
         <div className="public-photo-grid">
           {images.map((image) => (
             <article className="public-photo-card" key={image.id}>
-              {image.downloadUrl ? <img src={image.downloadUrl} alt={image.caption || `${child.name}の写真`} /> : null}
+              {image.downloadUrl ? <MediaPreview media={image} alt={image.caption || `${child.name}の写真・動画`} /> : null}
               <p>{image.caption || 'キャプションなし'}</p>
               <button className="danger-button" type="button" onClick={() => handleDelete(image)}>
                 <Trash2 size={18} />
@@ -277,7 +277,7 @@ function TwinSlideshow({ images }: { images: ImageMap }) {
   };
 
   useEffect(() => setIndex(0), [maxLength]);
-  useInterval(goNext, 5200);
+  useInterval(goNext, 5000);
 
   return (
     <section className="twin-section">
@@ -319,7 +319,7 @@ function ChildSlide({ childId, image }: { childId: ChildId; image?: AlbumImage }
       </div>
       <div className="photo-frame">
         {image?.downloadUrl ? (
-          <img src={image.downloadUrl} alt={image.caption || `${child.name}の写真`} />
+          <MediaPreview media={image} alt={image.caption || `${child.name}の写真・動画`} />
         ) : (
           <div className="empty-photo">
             <ImagePlus size={42} />
@@ -334,6 +334,18 @@ function ChildSlide({ childId, image }: { childId: ChildId; image?: AlbumImage }
       <p className="photo-caption">{image?.caption || '今日の一枚'}</p>
     </article>
   );
+}
+
+function MediaPreview({ media, alt }: { media: AlbumImage; alt: string }) {
+  if (!media.downloadUrl) {
+    return null;
+  }
+
+  if (media.mediaType === 'video') {
+    return <video src={media.downloadUrl} controls muted playsInline preload="metadata" aria-label={alt} />;
+  }
+
+  return <img src={media.downloadUrl} alt={alt} />;
 }
 
 function AdminPage() {
@@ -443,7 +455,7 @@ function AdminPage() {
           <label className="upload-button inline">
             <Camera size={22} />
             手元の写真を追加
-            <input type="file" accept="image/*" onChange={(event) => handleManualUpload(event.target.files?.[0])} />
+            <input type="file" accept="image/*,video/*" onChange={(event) => handleManualUpload(event.target.files?.[0])} />
           </label>
         </div>
         <a className="external-album-link" href={child.googlePhotosUrl} target="_blank" rel="noreferrer">
@@ -482,7 +494,7 @@ function ImageEditor({ image }: { image: AlbumImage }) {
 
   return (
     <article className="photo-editor">
-      {image.downloadUrl ? <img src={image.downloadUrl} alt={caption || '取り込み済み写真'} /> : <div className="thumb-placeholder" />}
+      {image.downloadUrl ? <MediaPreview media={image} alt={caption || '取り込み済み写真・動画'} /> : <div className="thumb-placeholder" />}
       <div>
         <div className="editor-meta">
           <span className="status-pill active">{image.isPublished ? '公開中' : '非公開'}</span>
@@ -517,15 +529,7 @@ function ArPage() {
   const [scriptsReady, setScriptsReady] = useState(false);
   const [arMessage, setArMessage] = useState('ARを準備しています。');
   const maxLength = Math.max(images.kanata.length, images.hinata.length);
-  const [index, setIndex] = useState(0);
-
-  const slideImage = images.kanata[index % Math.max(images.kanata.length, 1)] ?? images.hinata[index % Math.max(images.hinata.length, 1)];
-
-  const goNext = useCallback(() => {
-    setIndex((current) => (maxLength ? (current + 1) % maxLength : 0));
-  }, [maxLength]);
-
-  useInterval(goNext, 5200);
+  const hasArMedia = maxLength > 0;
 
   useEffect(() => {
     if (!firebaseReady) {
@@ -587,14 +591,14 @@ function ArPage() {
       });
   }, [targetReady]);
 
-  if (targetReady && scriptsReady && slideImage?.downloadUrl) {
+  if (targetReady && scriptsReady && hasArMedia) {
     return (
       <main className="ar-camera-page">
         <div className="ar-toolbar">
           <span>{arMessage}</span>
           <a href="/">通常アルバム</a>
         </div>
-        <MindArScene imageUrl={slideImage.downloadUrl} />
+        <MindArScene images={images} />
       </main>
     );
   }
@@ -616,7 +620,68 @@ function ArPage() {
   );
 }
 
-function MindArScene({ imageUrl }: { imageUrl: string }) {
+function MindArScene({ images }: { images: ImageMap }) {
+  const stageRef = useRef<HTMLDivElement | null>(null);
+  const arData = {
+    kanata: images.kanata.map(toArMedia),
+    hinata: images.hinata.map(toArMedia),
+  };
+
+  useEffect(() => {
+    const root = stageRef.current;
+    if (!root) return undefined;
+
+    let index = 0;
+    const fit = (aspect: number) => {
+      const safeAspect = Number.isFinite(aspect) && aspect > 0 ? aspect : 1;
+      const maxWidth = 0.68;
+      const maxHeight = 0.92;
+      if (safeAspect >= maxWidth / maxHeight) return { width: maxWidth, height: maxWidth / safeAspect };
+      return { width: maxHeight * safeAspect, height: maxHeight };
+    };
+    const setSize = (plane: Element, aspect: number) => {
+      const size = fit(aspect);
+      plane.setAttribute('width', String(size.width));
+      plane.setAttribute('height', String(size.height));
+    };
+    const apply = (side: ChildId, item?: ReturnType<typeof toArMedia>) => {
+      const imageAsset = root.querySelector<HTMLImageElement>(`#${side}-image-asset`);
+      const videoAsset = root.querySelector<HTMLVideoElement>(`#${side}-video-asset`);
+      const imagePlane = root.querySelector(`#${side}-image-plane`);
+      const videoPlane = root.querySelector(`#${side}-video-plane`);
+      if (!imageAsset || !videoAsset || !imagePlane || !videoPlane) return;
+
+      imagePlane.setAttribute('visible', 'false');
+      videoPlane.setAttribute('visible', 'false');
+      if (!item?.url) return;
+
+      if (item.mediaType === 'video') {
+        videoAsset.src = item.url;
+        videoAsset.load();
+        videoAsset.onloadedmetadata = () => setSize(videoPlane, videoAsset.videoWidth / videoAsset.videoHeight);
+        videoAsset.play().catch(() => {});
+        videoPlane.setAttribute('visible', 'true');
+        return;
+      }
+
+      imageAsset.src = item.url;
+      imageAsset.onload = () => setSize(imagePlane, imageAsset.naturalWidth / imageAsset.naturalHeight);
+      imagePlane.setAttribute('visible', 'true');
+    };
+    const show = () => {
+      apply('kanata', arData.kanata[index % Math.max(arData.kanata.length, 1)]);
+      apply('hinata', arData.hinata[index % Math.max(arData.hinata.length, 1)]);
+      index += 1;
+    };
+
+    const startTimer = window.setTimeout(show, 500);
+    const interval = window.setInterval(show, 5000);
+    return () => {
+      window.clearTimeout(startTimer);
+      window.clearInterval(interval);
+    };
+  }, [arData.kanata, arData.hinata]);
+
   const sceneHtml = `
     <a-scene
       mindar-image="imageTargetSrc: ${mindTargetUrl}; autoStart: true; uiScanning: yes; uiLoading: yes; uiError: yes;"
@@ -626,16 +691,30 @@ function MindArScene({ imageUrl }: { imageUrl: string }) {
       device-orientation-permission-ui="enabled: false"
     >
       <a-assets>
-        <img id="ar-slide" crossorigin="anonymous" src="${escapeAttribute(imageUrl)}" />
+        <img id="kanata-image-asset" crossorigin="anonymous" />
+        <img id="hinata-image-asset" crossorigin="anonymous" />
+        <video id="kanata-video-asset" crossorigin="anonymous" autoplay loop muted playsinline webkit-playsinline preload="auto"></video>
+        <video id="hinata-video-asset" crossorigin="anonymous" autoplay loop muted playsinline webkit-playsinline preload="auto"></video>
       </a-assets>
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
       <a-entity mindar-image-target="targetIndex: 0">
-        <a-plane src="#ar-slide" position="0 0 0" width="1.08" height="0.72"></a-plane>
+        <a-image id="kanata-image-plane" src="#kanata-image-asset" position="-0.48 0.03 0" visible="false"></a-image>
+        <a-video id="kanata-video-plane" src="#kanata-video-asset" position="-0.48 0.03 0" visible="false"></a-video>
+        <a-image id="hinata-image-plane" src="#hinata-image-asset" position="0.48 0.03 0" visible="false"></a-image>
+        <a-video id="hinata-video-plane" src="#hinata-video-asset" position="0.48 0.03 0" visible="false"></a-video>
       </a-entity>
     </a-scene>
   `;
 
-  return <div className="ar-stage" key={imageUrl} dangerouslySetInnerHTML={{ __html: sceneHtml }} />;
+  return <div className="ar-stage" ref={stageRef} key="ar-scene" dangerouslySetInnerHTML={{ __html: sceneHtml }} />;
+}
+
+function toArMedia(media: AlbumImage) {
+  return {
+    id: media.id,
+    url: media.downloadUrl,
+    mediaType: media.mediaType ?? 'image',
+  };
 }
 
 function loadScript(src: string) {
@@ -658,10 +737,6 @@ function loadScript(src: string) {
     script.onerror = () => reject(new Error(`Script load failed: ${src}`));
     document.head.appendChild(script);
   });
-}
-
-function escapeAttribute(value: string) {
-  return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 function CenteredCard({ children, icon }: { children: ReactNode; icon: ReactNode }) {

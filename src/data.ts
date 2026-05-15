@@ -13,7 +13,7 @@ import {
 } from 'firebase/firestore';
 import { deleteObject, getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { db, storage } from './firebase';
-import type { AlbumImage, ChildId, ImportResult, SourceType } from './types';
+import type { AlbumImage, ChildId, ImportResult, MediaType, SourceType } from './types';
 
 export const childProfiles = [
   {
@@ -41,11 +41,16 @@ function imagesRef(childId: ChildId) {
 }
 
 function toAlbumImage(childId: ChildId, id: string, data: Record<string, unknown>): AlbumImage {
+  const storagePath = String(data.storagePath ?? '');
+  const mediaType =
+    data.mediaType === 'video' || /\.(mp4|mov|m4v|webm)$/i.test(storagePath) ? 'video' : ('image' as MediaType);
+
   return {
     id,
     childId,
-    storagePath: String(data.storagePath ?? ''),
+    storagePath,
     downloadUrl: typeof data.downloadUrl === 'string' ? data.downloadUrl : undefined,
+    mediaType,
     caption: typeof data.caption === 'string' ? data.caption : undefined,
     takenAt: typeof data.takenAt === 'string' ? data.takenAt : undefined,
     sourceType: (data.sourceType as SourceType | undefined) ?? 'manual-upload',
@@ -106,9 +111,16 @@ function monthFolder(takenAt?: string) {
 }
 
 function extensionFor(mimeType: string) {
+  if (mimeType.includes('mp4')) return 'mp4';
+  if (mimeType.includes('quicktime')) return 'mov';
+  if (mimeType.includes('webm')) return 'webm';
   if (mimeType.includes('webp')) return 'webp';
   if (mimeType.includes('png')) return 'png';
   return 'jpg';
+}
+
+function mediaTypeFor(mimeType: string): MediaType {
+  return mimeType.startsWith('video/') ? 'video' : 'image';
 }
 
 export async function uploadImageBlob({
@@ -136,6 +148,7 @@ export async function uploadImageBlob({
 
   const imageId = crypto.randomUUID();
   const extension = extensionFor(blob.type);
+  const mediaType = mediaTypeFor(blob.type);
   const storagePath = `albums/${childId}/${monthFolder(takenAt)}/${imageId}.${extension}`;
   const imageRef = ref(storage, storagePath);
   await uploadBytes(imageRef, blob, { contentType: blob.type || 'image/jpeg' });
@@ -147,6 +160,7 @@ export async function uploadImageBlob({
     childId,
     storagePath,
     downloadUrl,
+    mediaType,
     caption,
     takenAt: takenAt ?? new Date().toISOString(),
     sourceType,

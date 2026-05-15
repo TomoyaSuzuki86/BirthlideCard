@@ -184,10 +184,12 @@ h2 {
   background: #efe2cf;
 }
 
-.photo-frame img {
+.photo-frame img,
+.photo-frame video {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  background: #15120f;
 }
 
 .empty-photo {
@@ -505,11 +507,13 @@ textarea {
   background: #fffaf1;
 }
 
-.public-photo-card img {
+.public-photo-card img,
+.public-photo-card video {
   width: 100%;
   aspect-ratio: 1;
   border-radius: 6px;
-  object-fit: cover;
+  object-fit: contain;
+  background: #15120f;
 }
 
 .public-photo-card p {
@@ -544,11 +548,13 @@ textarea {
   background: #fffaf1;
 }
 
-.photo-editor img {
+.photo-editor img,
+.photo-editor video {
   width: 116px;
   aspect-ratio: 1;
   border-radius: 6px;
-  object-fit: cover;
+  object-fit: contain;
+  background: #15120f;
 }
 
 .thumb-placeholder {
@@ -700,6 +706,7 @@ textarea {
   }
 
   .photo-editor img,
+  .photo-editor video,
   .thumb-placeholder {
     width: 100%;
     aspect-ratio: 16 / 10;
