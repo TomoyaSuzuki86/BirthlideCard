@@ -281,6 +281,9 @@ function PublicUploadPage() {
 function TwinSlideshow({ images }: { images: ImageMap }) {
   const maxLength = Math.max(images.kanata.length, images.hinata.length);
   const [index, setIndex] = useState(0);
+  const preloadKey = childProfiles
+    .flatMap((child) => images[child.id].map((image) => image.downloadUrl).filter(Boolean))
+    .join('|');
 
   const goNext = useCallback(() => {
     setIndex((current) => (maxLength ? (current + 1) % maxLength : 0));
@@ -291,6 +294,22 @@ function TwinSlideshow({ images }: { images: ImageMap }) {
   };
 
   useEffect(() => setIndex(0), [maxLength]);
+  useEffect(() => {
+    const imagePreloads = childProfiles
+      .flatMap((child) => images[child.id])
+      .filter((image) => image.mediaType !== 'video' && image.downloadUrl)
+      .map((image) => {
+        const preload = new Image();
+        preload.src = image.downloadUrl ?? '';
+        return preload;
+      });
+
+    return () => {
+      imagePreloads.forEach((preload) => {
+        preload.src = '';
+      });
+    };
+  }, [preloadKey, images]);
   useInterval(goNext, 5000);
 
   return (
@@ -305,7 +324,11 @@ function TwinSlideshow({ images }: { images: ImageMap }) {
 
       <div className="twin-grid">
         {childProfiles.map((child) => (
-          <ChildSlide key={child.id} childId={child.id} image={images[child.id][index % Math.max(images[child.id].length, 1)]} />
+          <ChildSlide
+            key={child.id}
+            childId={child.id}
+            image={images[child.id][index % Math.max(images[child.id].length, 1)]}
+          />
         ))}
       </div>
 
@@ -333,7 +356,7 @@ function ChildSlide({ childId, image }: { childId: ChildId; image?: AlbumImage }
       </div>
       <div className="photo-frame">
         {image?.downloadUrl ? (
-          <MediaPreview media={image} alt={image.caption || `${child.name}の写真・動画`} />
+          <MediaPreview key={image.id} media={image} alt={image.caption || `${child.name}の写真・動画`} />
         ) : (
           <div className="empty-photo">
             <ImagePlus size={42} />
@@ -356,10 +379,10 @@ function MediaPreview({ media, alt }: { media: AlbumImage; alt: string }) {
   }
 
   if (media.mediaType === 'video') {
-    return <video src={media.downloadUrl} controls muted playsInline preload="metadata" aria-label={alt} />;
+    return <video src={media.downloadUrl} controls muted playsInline preload="metadata" aria-label={alt} data-media-id={media.id} />;
   }
 
-  return <img src={media.downloadUrl} alt={alt} />;
+  return <img src={media.downloadUrl} alt={alt} loading="eager" decoding="async" data-media-id={media.id} />;
 }
 
 function AdminPage() {
