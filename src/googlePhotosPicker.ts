@@ -47,11 +47,12 @@ declare global {
 
 const photosPickerScope = 'https://www.googleapis.com/auth/photospicker.mediaitems.readonly';
 const pickerEndpoint = 'https://photospicker.googleapis.com/v1';
+export const googlePhotosPickerConfigured = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID);
 
 function getGoogleClientId() {
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
   if (!clientId) {
-    throw new Error('VITE_GOOGLE_CLIENT_ID が未設定です。Google Photos Picker API用のOAuthクライアントIDを設定してください。');
+    throw new Error('Googleフォト連携はOAuthクライアントIDの設定待ちです。先に「写真を選ぶ」から追加してください。');
   }
   return clientId;
 }

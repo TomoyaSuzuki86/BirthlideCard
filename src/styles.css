@@ -323,6 +323,12 @@ h2 {
   color: #4d3a2a;
 }
 
+.primary-button:disabled,
+.secondary-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .notice {
   display: flex;
   align-items: center;

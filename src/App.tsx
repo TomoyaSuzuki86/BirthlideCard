@@ -23,7 +23,7 @@ import {
   watchPublishedImages,
 } from './data';
 import { firebaseReady } from './firebase';
-import { startGooglePhotosImport } from './googlePhotosPicker';
+import { googlePhotosPickerConfigured, startGooglePhotosImport } from './googlePhotosPicker';
 import { useAuth, useInterval } from './hooks';
 import type { AlbumImage, ChildId } from './types';
 
@@ -195,6 +195,9 @@ function PublicUploadPage() {
       </header>
 
       <Notice>ログインなしで写真を追加・削除できます。</Notice>
+      {!googlePhotosPickerConfigured && (
+        <Notice>Googleフォト連携は設定待ちです。写真・動画は「写真を選ぶ」から追加できます。</Notice>
+      )}
       {error && <Notice tone="error">{error}</Notice>}
       {busy && <Notice>{busy}</Notice>}
 
@@ -243,7 +246,7 @@ function PublicUploadPage() {
             写真を選ぶ
             <input type="file" accept="image/*,video/*" multiple onChange={(event) => handleFiles(event.target.files ?? undefined)} />
           </label>
-          <button className="primary-button" type="button" onClick={handleGooglePhotosImport}>
+          <button className="primary-button" type="button" onClick={handleGooglePhotosImport} disabled={!googlePhotosPickerConfigured}>
             <Cloud size={22} />
             Googleフォトから選ぶ
           </button>
@@ -437,6 +440,9 @@ function AdminPage() {
         </button>
       </header>
 
+      {!googlePhotosPickerConfigured && (
+        <Notice>Googleフォト連携はOAuthクライアントIDの設定後に使えます。手動アップロードは利用できます。</Notice>
+      )}
       {error && <Notice tone="error">{error}</Notice>}
       {busy && <Notice>{busy}</Notice>}
 
@@ -459,7 +465,7 @@ function AdminPage() {
       <section className="admin-panel">
         <h2>{child.name}の写真を追加</h2>
         <div className="action-grid">
-          <button className="primary-button" type="button" onClick={handleGooglePhotosImport}>
+          <button className="primary-button" type="button" onClick={handleGooglePhotosImport} disabled={!googlePhotosPickerConfigured}>
             <Cloud size={22} />
             Googleフォトから取り込む
           </button>

@@ -13,6 +13,13 @@
 5. `firestore.rules`と`storage.rules`の`REPLACE_WITH_ADMIN_UID`を同じUIDへ置き換えます。
 6. Google Photos Picker API用のOAuthクライアントIDを`VITE_GOOGLE_CLIENT_ID`に入れます。
 
+Googleフォト連携を使う場合は、Google Cloud Consoleで `birthlidecard` プロジェクトを開き、Google Photos Picker APIを有効化してから、OAuthクライアントIDを作成します。
+
+- 種類: ウェブアプリケーション
+- 承認済みのJavaScript生成元: `https://birthlidecard.web.app`
+- ローカル確認用: `http://localhost:5175`、`http://127.0.0.1:5175`
+- 作成された `xxxxx.apps.googleusercontent.com` を `.env.local` の `VITE_GOOGLE_CLIENT_ID` に設定します。
+
 ```bash
 npm install
 npm run dev
