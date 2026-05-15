@@ -1,6 +1,6 @@
 # BirthlideCard
 
-命名書のQRコードから開く、奏汰・日向のWebアルバムです。表示の正はFirebase StorageとFirestoreで、Googleフォト共有アルバムURLは外部リンクとして残します。
+バースカードのQRコードから開く、奏汰・日向のWebアルバムです。表示の正はFirebase StorageとFirestoreで、Googleフォト共有アルバムURLは外部リンクとして残します。
 
 公開URLはFirebase Hostingの標準URL `https://birthlidecard.web.app/` を想定しています。Canvaに入れたQRコードもこのURLに向けています。
 
@@ -80,13 +80,13 @@ Drive APIでフォルダ内の画像を読み取り、新規ファイルだけSt
 
 ## Phase 2
 
-`/ar`にMindAR.js + A-FrameのAR表示を実装しています。`public/targets/meimeisho.mind` が存在する場合だけARカメラを起動し、未対応端末やターゲット未作成時は通常アルバムへ戻します。
+`/ar`にMindAR.js + A-FrameのAR表示を実装しています。`public/targets/birth-card.mind` が存在する場合だけARカメラを起動し、未対応端末やターゲット未作成時は通常アルバムへ戻します。
 
 ARターゲット作成:
 
-1. CanvaからQR入り命名書を画像として書き出します。
-2. MindARのImage Target Compilerで命名書画像を `.mind` に変換します。
-3. 生成したファイルを `public/targets/meimeisho.mind` に置きます。
-4. `npm run build` 後、スマホのHTTPS環境で `/ar` を開いて命名書を写します。
+1. CanvaからQR入りバースカードを画像として書き出します。
+2. MindARのImage Target Compilerでバースカード画像を `.mind` に変換します。
+3. 生成したファイルを `public/targets/birth-card.mind` に置きます。
+4. `npm run build` 後、スマホのHTTPS環境で `/ar` を開いてバースカードを写します。
 
 AR表示はFirebase Firestoreの `isPublished=true` の画像を使います。画像がない場合、または `.mind` がない場合は通常アルバムへのリンクを表示します。

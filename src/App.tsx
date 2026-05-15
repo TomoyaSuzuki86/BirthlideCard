@@ -30,7 +30,7 @@ import type { AlbumImage, ChildId } from './types';
 type ImageMap = Record<ChildId, AlbumImage[]>;
 
 const emptyImages: ImageMap = { kanata: [], hinata: [] };
-const mindTargetUrl = '/targets/meimeisho.mind?v=20260515-ar';
+const mindTargetUrl = '/targets/birth-card.mind?v=20260516-birth-card';
 
 export function App() {
   const path = window.location.pathname;
@@ -86,10 +86,10 @@ function PublicAlbumPage() {
           <p className="eyebrow">Kanata & Hinata</p>
           <h1>今月の奏汰と日向</h1>
           <p className="hero-copy">
-            命名書から来てくれてありがとうございます。奏汰と日向、それぞれの最新写真を並べて見られます。
+            バースカードから来てくれてありがとうございます。奏汰と日向、それぞれの最新写真を並べて見られます。
           </p>
         </div>
-        <div className="name-card" aria-label="奏汰と日向の命名書風カード">
+        <div className="name-card" aria-label="奏汰と日向のバースカード">
           <span>奏汰</span>
           <span>日向</span>
         </div>
@@ -569,7 +569,7 @@ function ArPage() {
         const hasTarget = response.ok && targetBytes.byteLength > 1024;
         setTargetReady(hasTarget);
         if (!hasTarget) {
-          setArMessage('AR用ターゲットファイルがまだありません。命名書画像から .mind ファイルを作成すると起動できます。');
+          setArMessage('AR用ターゲットファイルがまだありません。バースカード画像から .mind ファイルを作成すると起動できます。');
         }
       })
       .catch(() => {
@@ -584,7 +584,7 @@ function ArPage() {
       .then(() => loadScript('https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js'))
       .then(() => {
         setScriptsReady(true);
-        setArMessage('命名書をカメラに写してください。');
+        setArMessage('バースカードをカメラに写してください。');
       })
       .catch(() => {
         setArMessage('ARライブラリの読み込みに失敗しました。通常アルバムでご覧ください。');
