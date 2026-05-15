@@ -11,7 +11,7 @@ import {
   Sparkles,
   Trash2,
 } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   childProfiles,
   deleteImage,
@@ -622,10 +622,13 @@ function ArPage() {
 
 function MindArScene({ images }: { images: ImageMap }) {
   const stageRef = useRef<HTMLDivElement | null>(null);
-  const arData = {
-    kanata: images.kanata.map(toArMedia),
-    hinata: images.hinata.map(toArMedia),
-  };
+  const arData = useMemo(
+    () => ({
+      kanata: images.kanata.map(toArMedia),
+      hinata: images.hinata.map(toArMedia),
+    }),
+    [images],
+  );
 
   useEffect(() => {
     const root = stageRef.current;
@@ -645,28 +648,35 @@ function MindArScene({ images }: { images: ImageMap }) {
       plane.setAttribute('height', String(size.height));
     };
     const apply = (side: ChildId, item?: ReturnType<typeof toArMedia>) => {
-      const imageAsset = root.querySelector<HTMLImageElement>(`#${side}-image-asset`);
       const videoAsset = root.querySelector<HTMLVideoElement>(`#${side}-video-asset`);
       const imagePlane = root.querySelector(`#${side}-image-plane`);
       const videoPlane = root.querySelector(`#${side}-video-plane`);
-      if (!imageAsset || !videoAsset || !imagePlane || !videoPlane) return;
+      if (!videoAsset || !imagePlane || !videoPlane) return;
 
       imagePlane.setAttribute('visible', 'false');
       videoPlane.setAttribute('visible', 'false');
       if (!item?.url) return;
 
       if (item.mediaType === 'video') {
-        videoAsset.src = item.url;
+        const videoUrl = cacheBustedMediaUrl(item.url, item.id);
+        videoAsset.src = videoUrl;
         videoAsset.load();
         videoAsset.onloadedmetadata = () => setSize(videoPlane, videoAsset.videoWidth / videoAsset.videoHeight);
+        videoPlane.setAttribute('src', `#${side}-video-asset`);
         videoAsset.play().catch(() => {});
         videoPlane.setAttribute('visible', 'true');
         return;
       }
 
-      imageAsset.src = item.url;
-      imageAsset.onload = () => setSize(imagePlane, imageAsset.naturalWidth / imageAsset.naturalHeight);
-      imagePlane.setAttribute('visible', 'true');
+      const imageUrl = cacheBustedMediaUrl(item.url, item.id);
+      const imagePreload = new Image();
+      imagePreload.crossOrigin = 'anonymous';
+      imagePreload.onload = () => {
+        setSize(imagePlane, imagePreload.naturalWidth / imagePreload.naturalHeight);
+        imagePlane.setAttribute('src', imageUrl);
+        imagePlane.setAttribute('visible', 'true');
+      };
+      imagePreload.src = imageUrl;
     };
     const show = () => {
       apply('kanata', arData.kanata[index % Math.max(arData.kanata.length, 1)]);
@@ -691,8 +701,6 @@ function MindArScene({ images }: { images: ImageMap }) {
       device-orientation-permission-ui="enabled: false"
     >
       <a-assets>
-        <img id="kanata-image-asset" crossorigin="anonymous" />
-        <img id="hinata-image-asset" crossorigin="anonymous" />
         <video id="kanata-video-asset" crossorigin="anonymous" autoplay loop muted playsinline webkit-playsinline preload="auto"></video>
         <video id="hinata-video-asset" crossorigin="anonymous" autoplay loop muted playsinline webkit-playsinline preload="auto"></video>
       </a-assets>
@@ -707,6 +715,11 @@ function MindArScene({ images }: { images: ImageMap }) {
   `;
 
   return <div className="ar-stage" ref={stageRef} key="ar-scene" dangerouslySetInnerHTML={{ __html: sceneHtml }} />;
+}
+
+function cacheBustedMediaUrl(url: string, mediaId: string) {
+  const separator = url.includes('?') ? '&' : '?';
+  return `${url}${separator}slide=${encodeURIComponent(mediaId)}`;
 }
 
 function toArMedia(media: AlbumImage) {
